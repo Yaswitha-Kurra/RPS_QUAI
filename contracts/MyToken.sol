@@ -1,46 +1,69 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-/**
- * @dev Implementation of the ERC20 token with permit functionality and ownership.
- */
-contract MyToken is ERC20, ERC20Permit, Ownable {
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        uint256 totalSupply_,
-        address initialOwner_
-    ) ERC20(name_, symbol_) ERC20Permit(name_) Ownable(initialOwner_) {
-        _mint(initialOwner_, totalSupply_);
+contract MyToken {
+    struct Player {
+        address playerAddress;
+        uint256 wins;
+        uint256 losses;
+        uint256 totalGames;
     }
 
-    /**
-     * @dev Mints tokens to a specified address. Only callable by the owner.
-     * @param to The address to mint tokens to
-     * @param amount The amount of tokens to mint
-     */
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
+    mapping(address => Player) public players;
+    address[] public playerAddresses;
+    address public owner;
+    uint256 public entryFee = 0.1 ether;
+
+    event PlayerJoined(address indexed player);
+    event GamePlayed(address indexed player, string result);
+
+    constructor() {
+        owner = msg.sender;
     }
 
-    /**
-     * @dev Burns tokens from a specified address. Only callable by the owner.
-     * @param from The address to burn tokens from
-     * @param amount The amount of tokens to burn
-     */
-    function burn(address from, uint256 amount) public onlyOwner {
-        _burn(from, amount);
+    function play(uint8 playerMove) public payable {
+        require(msg.value >= entryFee, "Entry fee is 0.1 Quai");
+
+        // If player is new, add them
+        if (players[msg.sender].playerAddress == address(0)) {
+            players[msg.sender] = Player({
+                playerAddress: msg.sender,
+                wins: 0,
+                losses: 0,
+                totalGames: 0
+            });
+            playerAddresses.push(msg.sender); // ✅ Important to push into array
+            emit PlayerJoined(msg.sender);
+        }
+
+        // Generate bot's move (pseudo-random)
+        uint8 botMove = uint8(uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 3);
+
+        // Update player stats based on outcome
+        if (playerMove == botMove) {
+            players[msg.sender].totalGames++;
+            emit GamePlayed(msg.sender, "Draw");
+        } else if ((playerMove + 1) % 3 == botMove) {
+            players[msg.sender].losses++;
+            players[msg.sender].totalGames++;
+            emit GamePlayed(msg.sender, "Loss");
+        } else {
+            players[msg.sender].wins++;
+            players[msg.sender].totalGames++;
+            emit GamePlayed(msg.sender, "Win");
+        }
     }
 
-    /**
-     * @dev Returns the version of the contract.
-     */
-    function version() public pure returns (string memory) {
-        return "1";
+    function getLeaderboard() public view returns (Player[] memory) {
+        Player[] memory leaderboard = new Player[](playerAddresses.length);
+        for (uint256 i = 0; i < playerAddresses.length; i++) {
+            leaderboard[i] = players[playerAddresses[i]];
+        }
+        return leaderboard;
+    }
+
+    function withdraw() public {
+        require(msg.sender == owner, "Only owner can withdraw");
+        payable(owner).transfer(address(this).balance);
     }
 }

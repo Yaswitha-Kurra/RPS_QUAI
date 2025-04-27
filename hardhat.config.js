@@ -3,7 +3,6 @@
  */
 
 require('@nomicfoundation/hardhat-toolbox')
-require('@quai/quais-upgrades');
 require("@quai/hardhat-deploy-metadata");
 
 const dotenv = require('dotenv')
@@ -41,7 +40,7 @@ module.exports = {
       },
     },
     {
-      version: '0.8.20',
+      version: '0.8.22',
       settings: {
         optimizer: {
           enabled: true,
