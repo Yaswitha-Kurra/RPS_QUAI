@@ -17,7 +17,7 @@ module.exports = {
       chainId: Number(process.env.CHAIN_ID),
     },
     cyprus1_fullpath: {
-      url: "https://orchard.rpc.quai.network/cyprus1",
+      url: "https://rpc.quai.network",
       accounts: [process.env.CYPRUS1_PK],
       chainId: Number(process.env.CHAIN_ID),
     },
